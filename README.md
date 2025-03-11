@@ -1,0 +1,49 @@
+# UWOpenRecRoster2-Backend
+
+Backend written in GO for [UWOpenRecRoster2](https://github.com/HaydenDippL/UWOpenRecRoster2). Check our DOCS.md for information about the code in the project.
+
+## Endpoint
+
+`GET /schedule` with the parameters:
+
+- `date` with a date in the ISO Date format `"12-25-2025"`
+- `gyms` represents which gyms we want. This paramter is a comma separated list which may contain `"Bakke"` and or `"Nick"`
+- `facilities` represents what type of facilities we are are querying. This is a comma separated list, similar to `gym` with the following possible options: `"Courts"`, `"Pool"`, `"RockWall"`, `"Esports"`.
+
+A full query may look like 
+
+`GET /schedule?date=12-25-2025&gym=Bakke,Nick&facilities=Courts,Pool`
+
+It returns data in the following form, all dates are ISO DateTimes (RFC 3339).
+
+```
+{
+    Bakke: {
+        Courts: [
+            {
+                location: "Court 1",
+                eventName: "Open Rec Basketball",
+                start: "2025-03-11T06:00:00Z",
+                end: "2025-03-11T10:00:00Z"
+            }
+            ...
+        ],
+        Pool: [
+            {
+                location: "Lane 1",
+                eventName: "Open Rec Swim",
+                start: "2025-03-11T06:00:00Z",
+                end: "2025-03-11T10:00:00Z"
+            }
+        ]
+    },
+    Nick: {
+        Courts: [
+            ...
+        ],
+        Pool: [
+            ...
+        ]
+    }
+}
+```
