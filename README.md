@@ -6,7 +6,7 @@ Backend written in GO for [UWOpenRecRoster2](https://github.com/HaydenDippL/UWOp
 
 `GET /schedule` with the parameters:
 
-- `date` with a date in the ISO Date format `"12-25-2025"`
+- `date` with a date in the ISO Date format `"2024-12-25` for December 25, 2024
 - `gyms` represents which gyms we want. This paramter is a comma separated list which may contain `"Bakke"` and or `"Nick"`
 - `facilities` represents what type of facilities we are are querying. This is a comma separated list, similar to `gym` with the following possible options: `"Courts"`, `"Pool"`, `"RockWall"`, `"Esports"`.
 
