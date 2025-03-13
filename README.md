@@ -47,3 +47,16 @@ It returns data in the following form, all dates are ISO DateTimes (RFC 3339).
     }
 }
 ```
+
+## Requirements
+
+Need Go and required build tools
+
+```
+sudo apt-get install -y \
+    build-essential \
+    gcc-multilib \
+    linux-libc-dev \
+    libgcc-s1 \
+    libc6-dev
+```
