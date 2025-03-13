@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
+	"strings"
+	// "os"
 )
 
 // Data represents the nested data structure in the request
@@ -44,7 +47,7 @@ var (
 
 const RECWELL_SCHEDULES_URL string = "https://uwmadison.emscloudservice.com/web/AnonymousServersApi.aspx/CustomBrowseEvents"
 
-func fetchSchedule(gym Gym, date string) (string, error) {
+func fetchSchedule(gym Gym, date string) (Events, error) {
 	body := RequestBody{
 		Date: date,
 		Data: Data{
@@ -58,25 +61,94 @@ func fetchSchedule(gym Gym, date string) (string, error) {
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request body: %w", err)
+		return Events{}, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
 	resp, err := http.Post(RECWELL_SCHEDULES_URL, "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return "", fmt.Errorf("failed to make HTTP request: %w", err)
+		return Events{}, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		return Events{}, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
 	schedule, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return Events{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	fmt.Println(string(schedule))
+	events, err := parseSchedule(string(schedule))
+	if err != nil {
+		return Events{}, fmt.Errorf("failed to parse schedule: %w", err)
+	}
 
-	return string(schedule), nil
+	return events, nil
+}
+
+type Event struct {
+	EventName  string `json:"EventName"`
+	Location   string `json:"Room"`
+	EventStart string `json:"GmtStart"`
+	EventEnd   string `json:"GmtEnd"`
+}
+
+type Events struct {
+	Events []Event `json:"DailyBookingResults"`
+}
+
+type ScheduleResp struct {
+	Data string `json:"d"`
+}
+
+const (
+	court     = "court"
+	mtMendota = "mount mendota"
+	pool      = "pool"
+	iceRink   = "ice rink"
+	esports   = "esports"
+)
+
+func filterSchedule(events Events) Events {
+	filtered := Events{
+		Events: make([]Event, 0),
+	}
+
+	for _, event := range events.Events {
+		location := strings.ToLower(strings.TrimSpace(event.Location))
+		if strings.Contains(location, court) || strings.Contains(location, mtMendota) || strings.Contains(location, pool) || strings.Contains(location, iceRink) || strings.Contains(location, esports) {
+			filtered.Events = append(filtered.Events, event)
+		}
+	}
+
+	return filtered
+}
+
+func decodeEvents(events Events) Events {
+	for i := range events.Events {
+		events.Events[i].Location = html.UnescapeString(events.Events[i].Location)
+		events.Events[i].EventName = html.UnescapeString(events.Events[i].EventName)
+	}
+
+	return events
+}
+
+func parseSchedule(schedule string) (Events, error) {
+	var resp ScheduleResp
+	err := json.Unmarshal([]byte(schedule), &resp)
+	if err != nil {
+		return Events{}, fmt.Errorf("error parsing JSON: %w", err)
+	}
+
+	var events Events
+	err = json.Unmarshal([]byte(resp.Data), &events)
+	if err != nil {
+		return Events{}, fmt.Errorf("error parsing JSON: %w", err)
+	}
+
+	events = filterSchedule(events)
+	events = decodeEvents(events)
+
+	return events, nil
 }
