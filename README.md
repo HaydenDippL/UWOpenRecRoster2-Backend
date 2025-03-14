@@ -60,3 +60,17 @@ sudo apt-get install -y \
     libgcc-s1 \
     libc6-dev
 ```
+
+Install postgres
+
+```
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+```
+go get github.com/gin-gonic/gin
+go get gorm.io/gorm
+go get gorm.io/driver/postgres
+```
