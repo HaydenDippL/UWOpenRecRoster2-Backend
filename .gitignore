@@ -1,3 +1,4 @@
 UWOpenRecRoster2-Backend
 *.zst
 *.csv
+.env
