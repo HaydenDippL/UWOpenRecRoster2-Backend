@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"UWOpenRecRoster2-Backend/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -75,7 +77,7 @@ func initDB() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	// Auto migrate your models
-	DB.AutoMigrate(&User{}, &Session{}, &Queries{})
+	DB.AutoMigrate(&models.User{}, &models.Session{}, &models.Query{})
 }
 
 func middleware(c *gin.Context) {
