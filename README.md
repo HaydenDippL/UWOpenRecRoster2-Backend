@@ -74,3 +74,11 @@ go get github.com/gin-gonic/gin
 go get gorm.io/gorm
 go get gorm.io/driver/postgres
 ```
+
+## PSQL
+
+Connect to Postgres DB
+
+```
+psql -h <DB_HOST> -U <DB_USER> -d <DB_NAME> -p <DB_PORT>
+```
