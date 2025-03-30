@@ -273,7 +273,7 @@ func insertData(users []models.User, sessions []models.Session, queries []models
 	}
 
 	// Auto migrate the models
-	if err := db.AutoMigrate(&models.User{}, &models.Session{}, &models.Query{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Session{}, &models.Query{}, &models.Schedule{}); err != nil {
 		return fmt.Errorf("failed to auto migrate models: %w", err)
 	}
 

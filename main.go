@@ -77,12 +77,12 @@ func initDB() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	// Auto migrate your models
-	DB.AutoMigrate(&models.User{}, &models.Session{}, &models.Query{})
+	DB.AutoMigrate(&models.User{}, &models.Session{}, &models.Query{}, &models.Schedule{})
 }
 
 func middleware(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	c.Writer.Header().Set("Content-Type", "application/json")
 
@@ -90,7 +90,7 @@ func middleware(c *gin.Context) {
 }
 
 func hello_world(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+    c.JSON(http.StatusOK, gin.H{
 		"message": "Hello World!",
 	})
 }
@@ -103,7 +103,7 @@ func schedule(c *gin.Context) {
 	}
 
 	dateFormat := "2006-01-02"
-	_, err := time.Parse(dateFormat, date)
+    parsedDate, err := time.Parse(dateFormat, date)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "date parameter must be of the form yyyy-MM-dd"})
 		return
@@ -128,11 +128,26 @@ func schedule(c *gin.Context) {
 		}
 	}
 
-	for _, gym := range gymList {
-		if gym == "bakke" {
-			fetchSchedule(bakke, date)
-		} else {
-			fetchSchedule(nick, date)
-		}
-	}
+    schedules := make(map[string]models.ScheduleJSON)
+
+    for _, gym := range gymList {
+        fmt.Printf("getting\n")
+        schedule, err := getSchedule(date, gym)
+        if err != nil {
+            fmt.Printf("%v\n", err)
+            fmt.Printf("fetching\n")
+            schedule, err = fetchSchedule(date, gym)
+            if err != nil {
+                fmt.Printf("err on fetch\n")
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong on our end"})
+                return
+            } else if err = memoSchedule(schedule, parsedDate, gym); err != nil {
+                fmt.Printf("err on memorize\n")
+            }
+        }
+        
+        schedules[gym] = schedule
+    }
+
+    c.JSON(http.StatusOK, schedules)
 }
