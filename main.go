@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"UWOpenRecRoster2-Backend/models"
@@ -22,7 +21,7 @@ func main() {
 	initDB()
 
 	r := gin.Default()
-
+    
 	r.Use(middleware)
 
 	r.GET("/", hello_world)
@@ -96,12 +95,14 @@ func hello_world(c *gin.Context) {
 }
 
 func schedule(c *gin.Context) {
+    // Handle getting the date query parameter
 	date := c.Query("date")
 	if date == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "date parameter is required"})
 		return
 	}
 
+    // validate the date query parameter
 	dateFormat := "2006-01-02"
     parsedDate, err := time.Parse(dateFormat, date)
 	if err != nil {
@@ -109,45 +110,27 @@ func schedule(c *gin.Context) {
 		return
 	}
 
-	gyms := c.Query("gym")
-	if gyms == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "gym parameter is required"})
-		return
-	}
-
-	gymList := strings.Split(gyms, ",")
-	if len(gymList) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "gym parameter must be a non-empty comma separated list of gyms: \"bakke\", \"nick\""})
-		return
-	}
-
-	for _, gym := range gymList {
-		if gym != "bakke" && gym != "nick" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "gym parameter must be a non-empty comma separated list of gyms: \"bakke\", \"nick\""})
-			return
-		}
-	}
-
-    schedules := make(map[string]models.ScheduleJSON)
-
-    for _, gym := range gymList {
-        fmt.Printf("getting\n")
-        schedule, err := getSchedule(date, gym)
-        if err != nil {
-            fmt.Printf("%v\n", err)
-            fmt.Printf("fetching\n")
-            schedule, err = fetchSchedule(date, gym)
-            if err != nil {
-                fmt.Printf("err on fetch\n")
-                c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong on our end"})
-                return
-            } else if err = memoSchedule(schedule, parsedDate, gym); err != nil {
-                fmt.Printf("err on memorize\n")
-            }
-        }
-        
-        schedules[gym] = schedule
+    // Attempt to get the memoized schedule from the DB
+    schedule, err := getSchedule(date)
+    if err == nil {
+        c.JSON(http.StatusOK, schedule)
+        return
+    } else {
+        log.Printf("Error getting %s schedule from db: %v\n", date, err)
     }
 
-    c.JSON(http.StatusOK, schedules)
+    // If we could not get the memoized schedule, attempt to fetch it.
+    // If we successfully fetch the schedule, attempt to memoize it
+    schedule, err = fetchSchedules(date)
+    if err == nil {
+        if memoErr := memoSchedule(schedule, parsedDate); memoErr != nil {
+            log.Printf("Error on memoize of %s: %v\n", date, memoErr) 
+        }
+        c.JSON(http.StatusOK, schedule)
+        return
+    }
+
+    // If we fail to get the schedule and fail to fetch it, return internal server error
+    log.Printf("Error on fetch of %s: %v\n", date, err)
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong on our end"})
 }

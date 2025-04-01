@@ -33,7 +33,26 @@ var (
 
 const RECWELL_SCHEDULES_URL string = "https://uwmadison.emscloudservice.com/web/AnonymousServersApi.aspx/CustomBrowseEvents"
 
-func fetchSchedule(date string, gym string) (models.ScheduleJSON, error) {
+func fetchSchedules(date string) (models.ScheduleResp, error) {
+    var schedule models.ScheduleResp
+
+    for _, gym := range []string{"bakke", "nick"} {
+        gymEvents, err := fetchSchedule(date, gym);
+        if err != nil {
+            return models.ScheduleResp{}, fmt.Errorf("error fetching the %s schedule", gym)
+        }
+        
+        if gym == "bakke" {
+            schedule.Bakke = gymEvents
+        } else {
+            schedule.Nick = gymEvents
+        }
+    }
+
+    return schedule, nil
+}
+
+func fetchSchedule(date string, gym string) (models.FacilityEvents, error) {
     var gymMeta GymMetaData
 
     switch gym {
@@ -42,7 +61,7 @@ func fetchSchedule(date string, gym string) (models.ScheduleJSON, error) {
     case "nick":
         gymMeta = nick
     default:
-        return models.ScheduleJSON{}, errors.New("gym must be either \"bakke\" or \"nick\"")
+        return models.FacilityEvents{}, errors.New("gym must be either \"bakke\" or \"nick\"")
     }
 
 	body := models.RequestBody{
@@ -58,46 +77,46 @@ func fetchSchedule(date string, gym string) (models.ScheduleJSON, error) {
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("failed to marshal request body: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
 	resp, err := http.Post(RECWELL_SCHEDULES_URL, "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("failed to make HTTP request: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return models.ScheduleJSON{}, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		return models.FacilityEvents{}, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
 	schedule, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("failed to read response body: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	events, err := parseSchedule(schedule)
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("failed to parse schedule: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("failed to parse schedule: %w", err)
 	}
 
     return events, nil
 }
 
-func parseSchedule(schedule []byte) (models.ScheduleJSON, error) {
+func parseSchedule(schedule []byte) (models.FacilityEvents, error) {
 	var resp models.ResponseBody
 	err := json.Unmarshal(schedule, &resp)
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("error parsing JSON: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("error parsing JSON: %w", err)
 	}
 
 	var events models.EventsRaw
 	err = json.Unmarshal([]byte(resp.Data), &events)
 	if err != nil {
-		return models.ScheduleJSON{}, fmt.Errorf("error parsing JSON: %w", err)
+		return models.FacilityEvents{}, fmt.Errorf("error parsing JSON: %w", err)
 	}
 
-    var convertedEvents models.ScheduleJSON = convertEventsToSchedule(events) 
+    var convertedEvents models.FacilityEvents = convertEventsToSchedule(events) 
 
 	return convertedEvents, nil
 }
@@ -110,8 +129,8 @@ const (
 	esports   = "esports"
 )
 
-func convertEventsToSchedule(events models.EventsRaw) models.ScheduleJSON {
-    schedule := models.ScheduleJSON{}
+func convertEventsToSchedule(events models.EventsRaw) models.FacilityEvents {
+    schedule := models.FacilityEvents{}
     for _, eventRaw := range events.Events {
         location := strings.ToLower(strings.TrimSpace(eventRaw.Location))
         

@@ -33,12 +33,16 @@ type Query struct {
 
 type Schedule struct {
 	ScheduleDate time.Time    `gorm:"type:date;not null;primaryKey"`
-	Gym          string    `gorm:"type:varchar(100);not null;primaryKey;check:Gym IN ('nick', 'bakke')"`
     Created      time.Time `gorm:"type:timestamptz;not null"`
-	Schedule     ScheduleJSON  `gorm:"type:jsonb;not null"`
+	Schedule     ScheduleResp  `gorm:"type:jsonb;not null"`
 }
 
-type ScheduleJSON struct {
+type ScheduleResp struct {
+    Bakke FacilityEvents `json:"bakke"`
+    Nick FacilityEvents `json:"nick"`
+}
+
+type FacilityEvents struct {
     Courts []Event `json:"courts"`
     Pool []Event `json:"pool"`
     Esports []Event `json:"esports"`
@@ -46,8 +50,15 @@ type ScheduleJSON struct {
     IceRink []Event `json:"ice_rink"`
 }
 
+type Event struct {
+    Name string `json:"name"`
+    Location string `json:"location"`
+    Start string `json:"start"`
+    End string `json:"end"`
+}
+
 // Scan implements the sql.Scanner interface for ScheduleJSON
-func (s *ScheduleJSON) Scan(value interface{}) error {
+func (s *ScheduleResp) Scan(value interface{}) error {
     if value == nil {
         return nil
     }
@@ -66,14 +77,7 @@ func (s *ScheduleJSON) Scan(value interface{}) error {
 }
 
 // Value implements the driver.Valuer interface for ScheduleJSON
-func (s ScheduleJSON) Value() (driver.Value, error) {
+func (s ScheduleResp) Value() (driver.Value, error) {
     return json.Marshal(s)
-}
-
-type Event struct {
-    Name string `json:"name"`
-    Location string `json:"location"`
-    Start string `json:"start"`
-    End string `json:"end"`
 }
 
