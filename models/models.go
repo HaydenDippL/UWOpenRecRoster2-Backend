@@ -25,8 +25,6 @@ type Session struct {
 type Query struct {
 	Id           int       `gorm:"primaryKey;autoIncrement"`
 	SessionID    string    `gorm:"type:uuid;not null"` // Belongs to Session
-	Gym          string    `gorm:"type:varchar(100);not null;check:Gym IN ('nick', 'bakke')"`
-	Facility     string    `gorm:"type:varchar(100);not null"`
 	ScheduleDate time.Time `gorm:"type:timestamp;not null"`
 	QueriedTime  time.Time `gorm:"type:timestamp;not null"`
 }

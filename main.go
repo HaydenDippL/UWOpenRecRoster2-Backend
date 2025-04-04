@@ -21,7 +21,7 @@ func main() {
 	initDB()
 
 	r := gin.Default()
-    
+
 	r.Use(middleware)
 
 	r.GET("/", hello_world)
@@ -89,48 +89,50 @@ func middleware(c *gin.Context) {
 }
 
 func hello_world(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "Hello World!",
 	})
 }
 
 func schedule(c *gin.Context) {
-    // Handle getting the date query parameter
+	// Handle getting the date query parameter
 	date := c.Query("date")
 	if date == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "date parameter is required"})
 		return
 	}
 
-    // validate the date query parameter
+	// validate the date query parameter
 	dateFormat := "2006-01-02"
-    parsedDate, err := time.Parse(dateFormat, date)
+	parsedDate, err := time.Parse(dateFormat, date)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "date parameter must be of the form yyyy-MM-dd"})
 		return
 	}
 
-    // Attempt to get the memoized schedule from the DB
-    schedule, err := getSchedule(date)
-    if err == nil {
-        c.JSON(http.StatusOK, schedule)
-        return
-    } else {
-        log.Printf("Error getting %s schedule from db: %v\n", date, err)
-    }
+	// Attempt to get the memoized schedule from the DB
+	schedule, err := getSchedule(date)
+	if err == nil {
+		c.JSON(http.StatusOK, schedule)
+		return
+	} else {
+		log.Printf("Error getting %s schedule from db: %v\n", date, err)
+	}
 
-    // If we could not get the memoized schedule, attempt to fetch it.
-    // If we successfully fetch the schedule, attempt to memoize it
-    schedule, err = fetchSchedules(date)
-    if err == nil {
-        if memoErr := memoSchedule(schedule, parsedDate); memoErr != nil {
-            log.Printf("Error on memoize of %s: %v\n", date, memoErr) 
-        }
-        c.JSON(http.StatusOK, schedule)
-        return
-    }
+	// If we could not get the memoized schedule, attempt to fetch it.
+	// If we successfully fetch the schedule, attempt to memoize it
+	schedule, err = fetchSchedules(date)
+	if err == nil {
+		if memoErr := memoSchedule(schedule, parsedDate); memoErr != nil {
+			log.Printf("Error on memoize of %s: %v\n", date, memoErr)
+		}
+		c.JSON(http.StatusOK, schedule)
+		return
+	}
 
-    // If we fail to get the schedule and fail to fetch it, return internal server error
-    log.Printf("Error on fetch of %s: %v\n", date, err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong on our end"})
+	log_event("", "", parsedDate) // TODO:
+
+	// If we fail to get the schedule and fail to fetch it, return internal server error
+	log.Printf("Error on fetch of %s: %v\n", date, err)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong on our end"})
 }

@@ -193,8 +193,6 @@ func convertData(legacySessions []LegacySession, legacyQueries []LegacyQueries) 
 		query := models.Query{
 			Id:           legacyQuery.Id,
 			SessionID:    legacyQuery.SessionId,
-			Gym:          gym,
-			Facility:     "courts",
 			ScheduleDate: scheduleDate,
 			QueriedTime:  queriedTime,
 		}
